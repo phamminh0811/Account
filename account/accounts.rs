@@ -3,7 +3,7 @@ use std::io;
 pub const PATH_FILE: &str = "/home/anhminh/Rust/rust_present/present_2/src/account/account.txt";
 
 
-fn interface(){
+pub fn interface(){
     println!("==================== Manager Panel ====================");
     println!("|                                                     |");
     println!("|    1. Register: Press 1                             |");
@@ -53,10 +53,11 @@ fn register(){
         register();
     }
     else {
-        register::write_file(PATH_FILE, input, "123456");
+        let pass = register::pass_gen();
+        register::write_file(PATH_FILE, input, &pass);
 
-        println!("Account has been created successfully");
-        println!("Your password is 123456, remember that");
+        println!("\nAccount has been created successfully");
+        println!("Your password is {}, remember that",pass);
     }
 }
 
@@ -109,7 +110,5 @@ fn check_pass(account:&str){
 
 }
 
-pub fn execute(){
-    interface();
-}
+
 

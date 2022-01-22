@@ -5,13 +5,14 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::io::{Write};
 use serde::{Deserialize, Serialize};
+use std::sync::mpsc;
 
 
 
 
-pub fn pass_gen(){
-
-    let mut rng = rand::thread_rng();
+pub fn pass_gen() -> String {
+    let (tx,rx) = mpsc::channel();
+    let mut rng = rand::thread_rng();  
     {
         let pass: String =Alphanumeric
             .sample_iter(&mut rng)
@@ -19,8 +20,11 @@ pub fn pass_gen(){
             .map(char::from)
             .collect();
 
-        println!("Your password is: {}", pass)
+        tx.send(pass).unwrap();
     }
+    
+    let recieved = rx.recv().unwrap();
+    recieved
 }
 
 #[derive(Debug,Serialize,Deserialize)]
@@ -46,20 +50,15 @@ pub fn read_file(path: &str) -> String{
 }
 
 pub fn write_file(path: &str,account:&str,pass:&str) {
-    while account != "q"
+    if account != "q"
     {
-        let string = read_file(path);
-        let mut accounts =parse_data(string);
+        let mut string = read_file(path);
         let a = Account{account:account.to_string(),pass:pass.to_string()};
-        accounts.push(a);
         
-        let mut string = String::new();
-        for account in accounts.iter() {
-            let json_str = serde_json::to_string(&account).unwrap();
-            string.push_str(&json_str);
-            string.push(';');
-        }
-        string.pop();
+        let a = serde_json::to_string(&a).unwrap();
+        string.push(';');
+        string.push_str(&a);
+        
         let path = Path::new(path);
         let display = path.display();
 
@@ -70,7 +69,7 @@ pub fn write_file(path: &str,account:&str,pass:&str) {
         };
         match file.write_all(string.as_bytes()) {
             Err(e) => panic!("Couldn't write to {}:{}",display,e),
-            Ok(_) =>println!("Successfully write into {}",display),
+            Ok(_) =>(),
         };
     }
 }
@@ -81,6 +80,7 @@ pub fn parse_data(json_str: String)->Vec<Account>{
     // let data = accounts_json.clone().into_boxed_slice();
     for account_json in accounts_json.into_iter() {
         let account = account_json.to_string();
+       
         let data = account.clone().into_boxed_str();
         let u: Account = serde_json::from_str(&data).unwrap();
         accounts.push(u);
@@ -93,8 +93,8 @@ pub fn check_already_created(path:&str,account_name: &str) -> bool {
     let mut a = false;
     let string = read_file(path);
     let accounts = parse_data(string);
-    for account in accounts.iter() {
-        if account_name == account.account{
+    for account1 in accounts.iter() {
+        if account_name == account1.account{
             a = true;
         }
     };
